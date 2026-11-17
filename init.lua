@@ -700,7 +700,18 @@ do
     -- clangd = {},
     -- gopls = {},
     -- pyright = {},
-    rust_analyzer = {},
+    -- Rust: clippy as the check command, so diagnostics include lints
+    rust_analyzer = {
+      settings = {
+        ['rust-analyzer'] = {
+          check = { command = 'clippy' }, -- rust-analyzer already passes --all-targets/--all-features
+          cargo = { allFeatures = true },
+          procMacro = { enable = true },
+          imports = { granularity = { group = 'module', enforce = true } },
+        },
+      },
+    },
+    taplo = {}, -- TOML (Cargo.toml) diagnostics and formatting
     --
     -- Some languages (like typescript) have entire language plugins that can be useful:
     --    https://github.com/pmizio/typescript-tools.nvim
@@ -787,6 +798,7 @@ do
     format_on_save = function(bufnr)
       -- You can specify filetypes to autoformat on save here:
       local enabled_filetypes = {
+        rust = true,
         -- lua = true,
         -- python = true,
       }
@@ -801,7 +813,7 @@ do
     },
     -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
+      rust = { 'rustfmt' },
       -- Conform can also run multiple formatters sequentially
       -- python = { "isort", "black" },
       --
@@ -888,7 +900,7 @@ do
     -- the rust implementation via `'prefer_rust_with_warning'`
     --
     -- See `:help blink-cmp-config-fuzzy` for more information
-    fuzzy = { implementation = 'lua' },
+    fuzzy = { implementation = 'prefer_rust' },
 
     -- Shows a signature help window while you type arguments for a function
     signature = { enabled = true },
