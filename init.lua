@@ -692,6 +692,8 @@ do
     end,
   })
 
+  local rust_inlay_hints_refreshed = setmetatable({}, { __mode = 'k' })
+
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
@@ -702,6 +704,21 @@ do
     -- pyright = {},
     -- Rust: clippy as the check command, so diagnostics include lints
     rust_analyzer = {
+      handlers = {
+        ['experimental/serverStatus'] = function(err, status, ctx)
+          if err or type(status) ~= 'table' or status.quiescent ~= true then return end
+          local client = vim.lsp.get_client_by_id(ctx.client_id)
+          if not client or rust_inlay_hints_refreshed[client] or not next(client.attached_buffers) then return end
+          rust_inlay_hints_refreshed[client] = true
+
+          -- 原生刷新可能早于项目分析完成；首次就绪后只重发一次。
+          for bufnr in pairs(client.attached_buffers) do
+            if vim.api.nvim_buf_is_loaded(bufnr) and client:supports_method('textDocument/inlayHint', bufnr) and vim.lsp.inlay_hint.is_enabled { bufnr = bufnr } then
+              vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+            end
+          end
+        end,
+      },
       settings = {
         ['rust-analyzer'] = {
           check = { command = 'clippy' }, -- rust-analyzer already passes --all-targets/--all-features
